@@ -45,6 +45,8 @@ def search_documents(query: str) -> str:
     Args:
         query: The search term or phrase to look for.
     """
+    if isinstance(query, dict):
+        query = query.get("query", "")
 
     if not query or not query.strip():
         return "ERROR: query must be a non-empty string."
@@ -107,6 +109,8 @@ def read_record(order_id: str) -> str:
     Args:
         order_id: The order ID to look up, e.g. ORD-1001
     """
+    if isinstance(order_id, dict):
+        order_id = order_id.get("order_id", "")
 
     # ── Input validation ──
     if not order_id or not order_id.strip():
