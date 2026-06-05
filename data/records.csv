@@ -1,0 +1,21 @@
+order_id,customer,product_id,product_name,quantity,unit_price,total,status,order_date,notes
+ORD-1001,Brightfield Logistics,PRD-005,Heavy Duty Shelving Unit,4,320,1280,Delivered,2024-01-10,
+ORD-1002,Metro Office Hub,PRD-001,Executive Desk,2,450,900,Delivered,2024-01-15,
+ORD-1003,Harlow Manufacturing,PRD-009,A4 Paper,20,42,840,Delivered,2024-01-18,
+ORD-1004,Apex Retail Group,PRD-002,Ergonomic Chair,6,280,1680,Delivered,2024-01-22,
+ORD-1005,Brightfield Logistics,PRD-007,Safety Helmet,10,85,850,Delivered,2024-02-01,Short shipment resolved
+ORD-1006,Sunrise Co-op,PRD-003,4-Drawer Filing Cabinet,3,175,525,Delivered,2024-02-05,
+ORD-1007,Metro Office Hub,PRD-010,Black Toner Cartridge,15,38,570,Delivered,2024-02-11,
+ORD-1008,Harlow Manufacturing,PRD-006,Manual Pallet Jack,1,650,650,Delivered,2024-02-14,
+ORD-1009,Metro Office Hub,PRD-002,Ergonomic Chair,2,280,560,Refunded,2024-02-20,Damaged on arrival
+ORD-1010,Apex Retail Group,PRD-009,A4 Paper,30,42,1260,Delivered,2024-02-25,
+ORD-1011,Greenway Partners,PRD-004,Bookshelf,5,120,600,Delivered,2024-03-01,
+ORD-1012,Sunrise Co-op,PRD-008,Steel Toe Boots,8,95,760,Delivered,2024-03-06,
+ORD-1013,Brightfield Logistics,PRD-005,Heavy Duty Shelving Unit,2,320,640,Delivered,2024-03-09,
+ORD-1014,Greenway Partners,PRD-001,Executive Desk,1,450,450,Pending,2024-03-20,Awaiting payment
+ORD-1015,Harlow Manufacturing,PRD-009,A4 Paper,25,42,1050,Delivered,2024-03-25,Payment misallocated resolved
+ORD-1016,Apex Retail Group,PRD-007,Safety Helmet,20,85,1700,Processing,2024-04-01,
+ORD-1017,Metro Office Hub,PRD-003,4-Drawer Filing Cabinet,4,175,700,Shipped,2024-04-05,
+ORD-1018,Sunrise Co-op,PRD-006,Manual Pallet Jack,2,650,1300,Shipped,2024-04-08,
+ORD-1019,Harlow Manufacturing,PRD-002,Ergonomic Chair,3,280,840,Processing,2024-04-10,
+ORD-1020,Brightfield Logistics,PRD-010,Black Toner Cartridge,10,38,380,Pending,2024-04-12,

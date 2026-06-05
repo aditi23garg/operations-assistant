@@ -1,0 +1,18 @@
+Nexus Supply Co. - Warehouse Operations Guidelines
+
+Safety Rules:
+1. All staff must wear safety helmets and steel toe boots in the warehouse.
+2. Maximum shelf load is 500kg per tier on heavy duty shelving units.
+3. Pallet jacks must not be operated at speeds exceeding walking pace.
+4. Aisles must remain clear of obstructions at all times.
+5. Fire exits must never be blocked.
+
+Stock Management:
+- Low stock alert triggers at 20 units for consumables.
+- Low stock alert triggers at 5 units for equipment.
+- Stock counts are performed every Friday before closing.
+- Damaged stock must be tagged and moved to the returns bay immediately.
+
+Receiving Deliveries:
+- All deliveries must be checked against the purchase order.
+- Discrepancies must be reported to the operations manager within 2 hours.

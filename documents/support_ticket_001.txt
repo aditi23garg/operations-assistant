@@ -1,0 +1,11 @@
+Support Ticket #001
+Date: 2024-03-10
+Customer: Brightfield Logistics
+Order: ORD-1005
+Issue: Received 5 units of PRD-007 (Safety Helmets) but ordered 10 units.
+Status: Resolved
+
+Resolution: Investigated warehouse dispatch records. Confirmed short shipment 
+error on our end. Remaining 5 units dispatched same day via express shipping 
+at no charge. Customer confirmed receipt on 2024-03-13. Apology email sent.
+Agent: Sarah K.

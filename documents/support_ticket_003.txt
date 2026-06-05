@@ -1,0 +1,13 @@
+Support Ticket #003
+Date: 2024-04-02
+Customer: Harlow Manufacturing
+Order: ORD-1015
+Issue: Invoice overdue notice received but customer claims payment was sent 
+       via bank transfer on 2024-03-28.
+Status: Resolved
+
+Resolution: Finance team investigated. Bank transfer located and matched 
+to account — had been misallocated to a different account number. 
+Payment of $1,240 correctly applied on 2024-04-03. Late fee waived 
+as error was on Nexus side. Customer notified.
+Agent: Priya M.
