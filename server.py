@@ -153,7 +153,56 @@ def read_record(order_id: str) -> str:
 
 
 # ═══════════════════════════════════════════════════════
-# TOOL 3: save_report
+# TOOL 3: search_orders
+# Searches all order records for a matching keyword/status
+# ═══════════════════════════════════════════════════════
+@mcp.tool()
+def search_orders(query: str) -> str:
+    """
+    Search all order records in the database by a general query (e.g. status, customer name, or product).
+    Use this to find orders when you don't have a specific order ID, such as finding all 'Processing' or 'Pending' orders.
+
+    Args:
+        query: The search term to look for, e.g. 'Processing'.
+    """
+    if isinstance(query, dict):
+        query = query.get("query", "")
+
+    if not query or not query.strip():
+        return "ERROR: query must be a non-empty string."
+
+    if not CSV_FILE.exists():
+        return "ERROR: records.csv not found in data folder."
+
+    query_clean = query.strip().lower()
+    results = []
+
+    try:
+        with open(CSV_FILE, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if any(query_clean in str(v).lower() for v in row.values()):
+                    lines = [f"Order: {row.get('order_id', 'Unknown')}"]
+                    for key, value in row.items():
+                        if value:
+                            lines.append(f"  {key}: {value}")
+                    results.append("\n".join(lines))
+
+        if not results:
+            return (
+                f"No orders found matching '{query}'. "
+                "Do not guess — report that no evidence was found."
+            )
+
+        header = f"[Source: records.csv]\nFound {len(results)} order(s) matching '{query}':\n\n"
+        return header + "\n\n".join(results)
+
+    except Exception as e:
+        return f"ERROR: Could not read records.csv — {str(e)}"
+
+
+# ═══════════════════════════════════════════════════════
+# TOOL 4: save_report
 # Saves a markdown report to the output/ folder
 # ═══════════════════════════════════════════════════════
 @mcp.tool()
