@@ -84,25 +84,57 @@ def run_crew(question: str) -> str:
                     return result
                 return wrapped_run
             t._run = types.MethodType(make_wrapper(t._run, t.name), t)
-            if t.name in ["read_record", "search_documents"]:
+            if t.name in ["read_record", "search_documents", "search_orders"]:
                 researcher_tools.append(t)
             elif t.name == "save_report":
                 writer_tools.append(t)
+
+        # ── Pre-detect order ID and extract keywords (Python, not LLM) ──
+        import re
+        order_id_match = re.search(r'ORD-\d+', question, re.IGNORECASE)
+        detected_order_id = order_id_match.group(0).upper() if order_id_match else None
+
+        # Extract meaningful keywords from the question (skip stop-words)
+        STOP_WORDS = {
+            'what', 'is', 'the', 'are', 'there', 'any', 'for', 'and', 'our',
+            'how', 'do', 'does', 'a', 'an', 'of', 'in', 'to', 'with', 'if',
+            'i', 'we', 'can', 'could', 'would', 'should', 'under', 'over',
+            'about', 'that', 'this', 'have', 'has', 'be', 'been', 'was',
+        }
+        raw_words = re.findall(r'[a-z]+', question.lower())
+        keywords = [w for w in raw_words if w not in STOP_WORDS and len(w) > 3]
+        # Deduplicate while preserving order, limit to 2
+        seen = set()
+        search_keywords = []
+        for w in keywords:
+            if w not in seen:
+                seen.add(w)
+                search_keywords.append(w)
+            if len(search_keywords) == 2:
+                break
+        if not search_keywords:
+            search_keywords = ['policy']
+
+        # Detect if user is asking for orders by status (e.g. "currently processing")
+        status_match = re.search(r'\b(processing|pending|shipped|delivered|refunded)\b', question, re.IGNORECASE)
+        detected_status = status_match.group(1).capitalize() if status_match else None
+
+        # Compute exact number of tool calls (used by agent max_iter + task prompt)
+        expected_tool_calls = len(search_keywords) + (1 if detected_order_id else 0) + (1 if detected_status else 0)
 
         # ── Researcher ─────────────────────────────────────────
         researcher = Agent(
             role="Operations Researcher",
             goal=(
                 "Use tools to find facts. "
-                "Call read_record for any order ID. "
-                "Call search_documents with single words like "
-                "'damaged', 'return', 'refund', 'shipping'. "
+                "Call read_record ONLY when an order ID is explicitly given. "
+                "Call search_documents with single relevant words. "
                 "Never invent information."
             ),
             backstory=(
                 "You are a data analyst who ONLY uses tool results. "
-                "You always call tools before answering. "
-                "You call read_record when you see an order ID like ORD-1005. "
+                "You never call read_record unless an order ID like ORD-XXXX is present. "
+                "You call search_orders to find orders by their status. "
                 "You call search_documents with ONE short word at a time. "
                 "You never assume or guess."
             ),
@@ -110,9 +142,9 @@ def run_crew(question: str) -> str:
             llm=my_llm,
             function_calling_llm=my_llm,
             verbose=True,
-            max_iter=10,
+            max_iter=expected_tool_calls + 1,  # exactly enough: tools + 1 final answer step
             allow_delegation=False,
-            max_retry_limit=3,
+            max_retry_limit=2,
         )
 
         # ── Writer ─────────────────────────────────────────────
@@ -126,30 +158,59 @@ def run_crew(question: str) -> str:
             backstory=(
                 "You write concise reports. "
                 "You only use facts the researcher found. "
+                "You never infer specific order status from general policy or support ticket documents. "
+                "Order statuses can only come from records.csv via read_record. "
                 "You always call save_report at the end."
             ),
             tools=writer_tools,
             llm=my_llm,
             function_calling_llm=my_llm,
             verbose=True,
-            max_iter=5,
+            max_iter=3,
             allow_delegation=False,
         )
 
-        # ── Research Task ──────────────────────────────────────
+        # ── Research Task (dynamically built) ─────────────────
+        task_steps = []
+        step_num = 1
+        if detected_order_id:
+            task_steps.append(
+                f"{step_num}. Call read_record with order_id='{detected_order_id}'."
+            )
+            step_num += 1
+        else:
+            task_steps.append(
+                f"{step_num}. SKIP read_record — there is NO order ID in this question. "
+                f"Do NOT call read_record under any circumstances."
+            )
+            step_num += 1
+            
+        if detected_status:
+            task_steps.append(
+                f"{step_num}. Call search_orders with query='{detected_status}'."
+            )
+            step_num += 1
+            
+        for kw in search_keywords:
+            task_steps.append(
+                f"{step_num}. Call search_documents with query='{kw}'."
+            )
+            step_num += 1
+        task_steps.append(
+            f"{step_num}. STOP — do NOT call any more tools. "
+            f"Report exactly what each tool returned, nothing more."
+        )
+        steps_text = "\n".join(task_steps)
+
         research_task = Task(
             description=(
                 f"QUESTION: {question}\n\n"
-                f"You MUST use tools. Do these steps in order:\n"
-                f"1. Does the question have an order ID like ORD-XXXX? "
-                f"If yes → call read_record tool with that order_id NOW.\n"
-                f"2. Call search_documents tool with the word 'damaged'.\n"
-                f"3. Call search_documents tool with the word 'return'.\n"
-                f"4. Report exactly what each tool returned, nothing more."
+                f"You MUST follow these steps EXACTLY — {expected_tool_calls} tool call(s) total, then stop:\n"
+                f"{steps_text}"
             ),
             expected_output=(
-                "A list of TOOL/RESULT pairs showing exactly what "
-                "each tool returned. Minimum 2 tool calls required."
+                f"Exactly {expected_tool_calls} TOOL/RESULT pair(s). "
+                "List what each tool returned word-for-word. No extra tool calls."
             ),
             agent=researcher,
         )
@@ -165,7 +226,8 @@ def run_crew(question: str) -> str:
                 f"2. Cite source after every fact e.g. [Source: return_policy.txt]\n"
                 f"3. Add a ## Sources section at the end.\n"
                 f"4. Call save_report tool with title and content.\n"
-                f"5. Under 300 words."
+                f"5. Under 300 words.\n"
+                f"6. If the question asks about specific orders but no order records were read (e.g. no order ID was provided), explicitly state that no processing order information was found in the documents and records.csv must be checked directly. Do NOT guess or infer order status from support tickets."
             ),
             expected_output=(
                 "Confirmation that save_report was called with the filename."
