@@ -10,7 +10,7 @@
 ![CrewAI](https://img.shields.io/badge/CrewAI-Multi--Agent-FF6B6B?style=for-the-badge&logo=robot&logoColor=white)
 ![MCP](https://img.shields.io/badge/MCP-FastMCP-6C63FF?style=for-the-badge&logo=protocol&logoColor=white)
 ![Ollama](https://img.shields.io/badge/Ollama-qwen2.5-black?style=for-the-badge&logo=ollama&logoColor=white)
-![Pytest](https://img.shields.io/badge/Pytest-27%20Tests-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white)
+![Pytest](https://img.shields.io/badge/Pytest-28%20Tests-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
 <br/>
