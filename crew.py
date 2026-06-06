@@ -71,18 +71,23 @@ def run_crew(question: str) -> str:
         print(f"MCP tools available: {tool_names}\n")
 
         import types
-        logged_tools = []
+        researcher_tools = []
+        writer_tools = []
         for t in tools:
-            original_run = t._run
-            def wrapped_run(self, *args, **kwargs):
-                entry = {"tool": self.name, "args": kwargs or args}
-                tool_calls_log.append(entry)
-                print(f"\n>>> TOOL CALLED: {self.name} | args: {kwargs or args}")
-                result = original_run(*args, **kwargs)
-                print(f">>> TOOL RESULT: {str(result)[:200]}")
-                return result
-            t._run = types.MethodType(wrapped_run, t)
-            logged_tools.append(t)
+            def make_wrapper(orig_run, tool_name):
+                def wrapped_run(self, *args, **kwargs):
+                    entry = {"tool": tool_name, "args": kwargs or args}
+                    tool_calls_log.append(entry)
+                    print(f"\n>>> TOOL CALLED: {tool_name} | args: {kwargs or args}")
+                    result = orig_run(*args, **kwargs)
+                    print(f">>> TOOL RESULT: {str(result)[:200]}")
+                    return result
+                return wrapped_run
+            t._run = types.MethodType(make_wrapper(t._run, t.name), t)
+            if t.name in ["read_record", "search_documents"]:
+                researcher_tools.append(t)
+            elif t.name == "save_report":
+                writer_tools.append(t)
 
         # ── Researcher ─────────────────────────────────────────
         researcher = Agent(
@@ -101,7 +106,7 @@ def run_crew(question: str) -> str:
                 "You call search_documents with ONE short word at a time. "
                 "You never assume or guess."
             ),
-            tools=logged_tools,
+            tools=researcher_tools,
             llm=my_llm,
             function_calling_llm=my_llm,
             verbose=True,
@@ -123,7 +128,7 @@ def run_crew(question: str) -> str:
                 "You only use facts the researcher found. "
                 "You always call save_report at the end."
             ),
-            tools=logged_tools,
+            tools=writer_tools,
             llm=my_llm,
             function_calling_llm=my_llm,
             verbose=True,
