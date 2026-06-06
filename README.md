@@ -1,12 +1,47 @@
-# 📦 Nexus Supply Co. — Operations Assistant
+<div align="center">
 
-> An intelligent, dual-agent system that automatically resolves customer inquiries by looking up live order records and searching internal company policy documents — all powered by local AI.
+# 🏭 Nexus Supply Co. — Operations Assistant
+
+### A dual-agent AI system that answers business questions by searching internal policy documents and live order records — powered entirely by a local LLM on your machine.
+
+<br/>
+
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![CrewAI](https://img.shields.io/badge/CrewAI-Multi--Agent-FF6B6B?style=for-the-badge&logo=robot&logoColor=white)
+![MCP](https://img.shields.io/badge/MCP-FastMCP-6C63FF?style=for-the-badge&logo=protocol&logoColor=white)
+![Ollama](https://img.shields.io/badge/Ollama-qwen2.5-black?style=for-the-badge&logo=ollama&logoColor=white)
+![Pytest](https://img.shields.io/badge/Pytest-27%20Tests-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+
+<br/>
+
+</div>
 
 ---
 
-## 🏗️ High-Level Architecture
+## 💡 What It Does
 
-![High-Level Architecture Diagram](./high_level_diagram.png)
+Given a plain-English question like:
+
+> *"What is the status of order ORD-1005 and what is our return policy for damaged items?"*
+
+The system:
+
+1. Parses the question to identify order IDs, status keywords, and topic areas
+2. Dispatches a **Researcher agent** to call the right MCP tools in the right order
+3. Hands findings to a **Writer agent** that produces a cited markdown report
+4. Saves the report to `output/` and a full execution trace to `traces/`
+
+Every fact in every report is cited. If a tool finds nothing, the system says so — it **never guesses**.
+
+---
+
+## 🏗️ Architecture
+
+![High-Level Architecture](./high_level_diagram.png)
+
+> For the detailed internal component flow, see [`low_level_diagram.png`](./low_level_diagram.png)
+
 
 ---
 
@@ -14,172 +49,152 @@
 
 | Layer | Technology |
 |---|---|
-| Agent Orchestration | [CrewAI](https://www.crewai.com/) |
-| Tool Protocol | [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) via FastMCP |
-| LLM Engine | [Ollama](https://ollama.com/) — local `qwen2.5` model |
+| Agent framework | [CrewAI](https://www.crewai.com/) |
+| Tool protocol | [MCP](https://modelcontextprotocol.io/) via FastMCP |
+| LLM | [Ollama](https://ollama.com/) — local `qwen2.5` |
 | Testing | [Pytest](https://pytest.org/) |
 | Language | Python 3.11+ |
 
 ---
 
-## 🔄 End-to-End Workflow
+## 🔧 MCP Tools
 
-```
-User Inquiry
-     │
-     ▼
- crew.py ──► MCPServerAdapter ──► FastMCP Server (server.py)
-     │                                     │
-     │                              Exposes 3 MCP tools
-     │
-     ├──► Operations Researcher Agent
-     │         Tools: read_record, search_documents
-     │         Calls tools → Returns raw facts
-     │
-     └──► Report Writer Agent (receives Researcher's context)
-               Tool: save_report
-               Writes cited Markdown report → output/
-```
+Four tools live in `server.py`. Each agent only gets the tools it needs — the Researcher cannot save reports, and the Writer cannot search.
 
-1. **User Inquiry** — A natural language question is submitted (e.g., *"What is the status of ORD-1005 and what is the return policy for damaged items?"*).
-2. **Operations Researcher Agent** runs first:
-   - Calls `read_record("ORD-1005")` → fetches live order data from `data/records.csv`.
-   - Calls `search_documents("damaged")` → scans `documents/` for policy excerpts.
-   - Calls `search_documents("return")` → gathers return policy details.
-   - Outputs strictly factual, cited tool results — **never guesses**.
-3. **Report Writer Agent** runs second:
-   - Receives the Researcher's findings via `context=[research_task]`.
-   - Formats a professional, cited Markdown report (≤300 words).
-   - Calls `save_report(title, content)` → saves final `.md` file into `output/`.
-4. **Trace Logger** captures every tool call, argument, and result into `traces/trace_TIMESTAMP.json` for full auditability.
+| Tool | Agent | What it does |
+|---|---|---|
+| `read_record(order_id)` | Researcher | Looks up one order by ID from `records.csv` |
+| `search_orders(query)` | Researcher | Searches `records.csv` by status, customer, or product |
+| `search_documents(query)` | Researcher | Full-text searches all `.txt` policy files in `documents/` |
+| `save_report(title, content)` | Writer | Timestamps and saves a markdown report to `output/` |
 
 ---
 
-## 🗂️ Project Structure
+## 📁 Project Structure
 
 ```
 operations-assistant/
 │
-├── crew.py                  # Main entry point — defines agents, tasks, crew
-├── server.py                # FastMCP server exposing the 3 MCP tools
+├── crew.py                        # Agents, tasks, crew — main entry point
+├── server.py                      # FastMCP server with all 4 tools
 │
 ├── data/
-│   └── records.csv          # Order records database (ORD-1001 to ORD-1020)
+│   └── records.csv                # 20 sample orders (ORD-1001 to ORD-1020)
 │
-├── documents/               # 10 internal policy & support documents
+├── documents/                     # 10 internal policy and support documents
+│   ├── company_overview.txt
 │   ├── return_policy.txt
 │   ├── shipping_policy.txt
 │   ├── payment_terms.txt
 │   ├── warehouse_guidelines.txt
 │   ├── vendor_policy.txt
 │   ├── product_catalog.txt
-│   ├── company_overview.txt
 │   └── support_ticket_001/002/003.txt
 │
 ├── tests/
-│   ├── test_tools.py        # 22 Pytest unit tests for all 3 MCP tools
-│   └── test_server.py       # Integration-level server tests
+│   ├── test_tools.py              # 22 unit tests for all MCP tools
+│   └── test_server.py             # Integration-level server tests
 │
-├── output/                  # Auto-generated Markdown reports (git-ignored)
-├── traces/                  # Execution trace JSON logs (git-ignored)
+├── output/                        # Auto-generated reports (git-ignored)
+├── traces/                        # Execution trace JSON logs (git-ignored)
 │
-├── high_level_diagram.png   # Architecture overview diagram
-├── low_level_diagram.png    # Technical component diagram
-├── DECISION_LOG.md          # Engineering decisions & rationale
-├── requirements.txt         # Locked Python dependencies
-├── .env.example             # Environment config template
+├── high_level_diagram.png
+├── low_level_diagram.png
+├── DECISION_LOG.md
+├── requirements.txt
+├── .env.example
 └── .gitignore
 ```
-
----
-
-## 🔧 MCP Tools Reference
-
-| Tool | Agent | Description |
-|---|---|---|
-| `read_record(order_id)` | Researcher only | Looks up a single order by ID from `records.csv`. Returns all order fields with source citation. |
-| `search_documents(query)` | Researcher only | Full-text searches all `.txt` files in `documents/`. Returns matching excerpts with source filenames. |
-| `save_report(title, content)` | Writer only | Sanitizes the title, timestamps the filename, and saves a Markdown report to `output/`. |
-
----
-
-## 🚧 Key Engineering Challenges & Solutions
-
-| # | Challenge | Solution |
-|---|---|---|
-| 1 | **Agent infinite loops** — both agents had all 3 tools, causing the Researcher to save reports and the Writer to re-research, looping indefinitely. | Segregated tools at initialization: `researcher_tools = [read_record, search_documents]`, `writer_tools = [save_report]`. |
-| 2 | **MCP stdio corruption** — `print()` statements in `server.py` polluted the JSON-RPC stream, crashing tool parsing. | Rerouted all server logs to `sys.stderr`, keeping `stdout` clean for MCP protocol traffic. |
-| 3 | **ReAct formatting failures** — local `qwen2.5` model couldn't reliably follow CrewAI's `Thought: / Action: / Action Input:` text format. | Enabled `function_calling_llm` on both agents, bypassing text-based ReAct in favour of native JSON tool-calling schemas. |
-| 4 | **Windows encoding crashes** — CrewAI outputs rich Unicode/emojis which caused `UnicodeEncodeError` on default Windows console encoding. | Added `sys.stdout.reconfigure(encoding='utf-8')` at script startup. |
-| 5 | **Subprocess Python mismatch** — `SERVER_PARAMS` using `"python"` picked the system Python, which lacked `mcp` package. | Replaced with `sys.executable` to guarantee the subprocess inherits the correct virtual environment. |
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Python 3.11+
 - [Ollama](https://ollama.com/) installed and running locally
 
 ```powershell
-# Pull the model
 ollama pull qwen2.5
 ```
 
-### Installation
+### Install
 
 ```powershell
-# 1. Clone the repo and enter the directory
+# Clone and enter the directory
 cd operations-assistant
 
-# 2. Create and activate virtual environment
+# Create and activate a virtual environment
 python -m venv venv
 .\venv\Scripts\activate
 
-# 3. Install all dependencies
+# Install dependencies
 pip install -r requirements.txt
 
-# 4. Set up environment variables
+# Set up environment variables
 copy .env.example .env
 ```
 
-### Environment Variables (`.env`)
+`.env` should contain:
 
 ```env
 OLLAMA_BASE_URL=http://localhost:11434
 MODEL_NAME=ollama/qwen2.5
 ```
 
-### Run the Assistant
+### Run
 
 ```powershell
-# Default inquiry
+# Default question
 python crew.py
 
-# Custom inquiry
+# Custom questions
 python crew.py "What is the status of order ORD-1005 and the return policy for damaged items?"
+python crew.py "What is the shipping cost for orders under $200?"
+python crew.py "What are the warehouse safety rules and which orders are processing?"
 ```
-
-Reports are saved to `output/` and traces to `traces/`.
 
 ---
 
-## 🧪 Testing
+## 🧪 Tests
 
-The project ships with **27 tests** across two test files covering all tool functions, validation logic, and edge cases.
+28 tests across two files covering all tools, validation logic, and edge cases.
 
 ```powershell
-# Run all tests with verbose output
 python -m pytest tests/ -v
 ```
 
-| Test File | Tests | Covers |
+| File | Tests | Covers |
 |---|---|---|
-| `tests/test_tools.py` | 22 | Full edge case coverage for all 3 MCP tools |
-| `tests/test_server.py` | 5 | Integration-level server tool tests |
+| `tests/test_tools.py` | 22 | All 4 MCP tools — valid inputs, bad inputs, edge cases |
+| `tests/test_server.py` | 6 | Integration-level server tool execution |
+
+---
+
+## ⚙️ Engineering Challenges
+
+The six most significant problems encountered during development and how they were solved:
+
+| # | Problem | Root Cause | Fix |
+|---|---|---|---|
+| 1 | **Agent infinite loops** | Both agents had all tools — Researcher called `save_report`, Writer re-searched, crew looped | Strictly segregated tools at init: Researcher gets search tools only, Writer gets `save_report` only |
+| 2 | **Tool over-execution & hallucination** | Agent looped on `search_documents` and invented order statuses from support ticket text | Built a Python pre-processor that generates a numbered tool plan and computes `max_iter` dynamically; added anti-hallucination rules to Writer prompt |
+| 3 | **MCP stdio corruption** | `print()` in `server.py` polluted the JSON-RPC stdout stream and crashed tool parsing | Rerouted all server logs to `sys.stderr`, keeping stdout clean for MCP protocol traffic |
+| 4 | **ReAct formatting failures** | Local `qwen2.5` couldn't reliably follow CrewAI's text-based `Thought: / Action: / Action Input:` format | Enabled `function_calling_llm` on both agents, switching to native JSON tool-call schemas |
+| 5 | **Windows encoding crashes** | CrewAI's rich Unicode output caused `UnicodeEncodeError` on default Windows console | Added `sys.stdout.reconfigure(encoding='utf-8')` at script startup |
+| 6 | **Subprocess Python mismatch** | `StdioServerParameters` with `command="python"` picked system Python — lacked `mcp` package | Replaced with `sys.executable` so subprocess always inherits the active virtual environment |
 
 ---
 
 ## 📋 Decision Log
 
-All major architectural and configuration decisions are documented in [`DECISION_LOG.md`](./DECISION_LOG.md), including rationale for each technical choice made during development.
+All major architectural decisions — model selection, transport choice, agent role design, and what was rejected — are documented in [`DECISION_LOG.md`](./DECISION_LOG.md).
+
+---
+
+<div align="center">
+
+Built as part of the **IIT Gandhinagar PG Diploma in AI/ML & Agentic AI Engineering** program · Week 14 Mini-Project
+
+</div>
