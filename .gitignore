@@ -5,3 +5,4 @@ __pycache__/
 output/
 traces/
 .DS_Store
+.pytest_cache/
