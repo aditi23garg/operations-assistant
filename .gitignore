@@ -3,6 +3,6 @@ venv/
 __pycache__/
 *.pyc
 output/
-traces/
+# traces/ — kept for submission (sample runs committed below)
 .DS_Store
 .pytest_cache/
